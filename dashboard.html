@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="titleDashboard">عيادات مسجد الجامع - لوحة التحكم</title>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="brand-logo">
+                    <div class="brand-logo-icon">
+                        <i class="fa-solid fa-hospital-user"></i>
+                    </div>
+                    <span data-i18n="brandName">عيادات مسجد الجامع</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item doctor-hide active">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span data-i18n="navDashboard">طلبات الحجز الأونلاين</span>
+                    <span class="nav-badge" id="sidebarAppointmentsBadge">0</span>
+                </a>
+                <a href="intake.html" class="nav-item">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span data-i18n="navIntake">استقبال المرضى</span>
+                </a>
+                <a href="prescription.html" class="nav-item">
+                    <i class="fa-solid fa-prescription"></i>
+                    <span data-i18n="navPrescription">كتابة الروشتة</span>
+                </a>
+                <a href="patients.html" class="nav-item">
+                    <i class="fa-solid fa-user-injured"></i>
+                    <span data-i18n="navPatients">بيانات المرضى</span>
+                </a>
+
+                <div class="nav-section-title" data-i18n="sectionData">البيانات والأقسام</div>
+                <a href="staff-doctors.html" class="nav-item">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span data-i18n="navStaffDoctors">الأطباء والعاملين</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fa-solid fa-tags"></i>
+                    <span data-i18n="navCategories">أقسام العيادات</span>
+                </a>
+                <a href="clinic-branches.html" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span data-i18n="navClinicBranches">فروع العيادات</span>
+                </a>
+
+                <div class="nav-section-title admin-only-nav" data-i18n="sectionAdmin" style="display:none">الإدارة</div>
+                <a href="users.html" class="nav-item admin-only-nav" style="display:none">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span data-i18n="navUserManagement">إدارة المستخدمين</span>
+                </a>
+                <div class="nav-section-title reports-nav" data-i18n="sectionReports" style="display:none">التقارير</div>
+                <a href="reports.html" class="nav-item reports-nav" style="display:none">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-i18n="navReports">التقارير</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-mini-card">
+                    <div class="user-avatar" id="sidebarUserAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">...</div>
+                        <div class="user-role-badge" id="sidebarUserRole">...</div>
+                    </div>
+                    <button class="btn-logout" onclick="auth.signOut()" title="تسجيل الخروج" data-i18n-title="tooltipLogout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="app-main">
+            <!-- Topbar -->
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button class="btn-hamburger" id="btnHamburger">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 class="topbar-title" data-i18n="navDashboard">طلبات الحجز الأونلاين</h1>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="branch-indicator-badge" id="topbarBranchIndicator">
+                        <i class="fa-solid fa-hospital"></i> <span data-i18n="allBranches">جميع الفروع</span>
+                    </div>
+
+                    <button class="btn-icon" id="themeToggleBtn" onclick="toggleDashboardTheme()" title="الوضع الليلي" data-i18n-title="tooltipTheme">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+
+                    <button class="btn-icon" onclick="notifications.clearUnread()" title="الإشعارات" data-i18n-title="tooltipNotifications">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notification-badge-dot" id="topbarNotificationDot"></span>
+                    </button>
+
+                    <button id="langSwitcherBtn" class="lang-switcher-btn" onclick="i18n.toggleLanguage()">
+                        <i class="fa-solid fa-globe"></i> <span>English</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="page-content">
+                <div class="audio-permission-banner" id="audioPermissionBanner">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fa-solid fa-volume-high" style="color: var(--primary); font-size: 1.25rem;"></i>
+                        <span style="font-size: 0.88rem; font-weight: 600;">هل ترغب في تشغيل نغمة تنبيه فورية عند ورود طلب حجز جديد؟</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="notifications.enableAudio()">
+                        <i class="fa-solid fa-check"></i> <span data-i18n="enableAudioBtn">تفعيل الصوت</span>
+                    </button>
+                </div>
+
+                <!-- Stats KPI Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-new">
+                        <div class="stat-info">
+                            <h3 data-i18n="statNewAppointments">حجوزات جديدة</h3>
+                            <div class="stat-value" id="statCountNew">0</div>
+                        </div>
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-sparkles"></i></div>
+                    </div>
+                    <div class="stat-card stat-confirmed">
+                        <div class="stat-info">
+                            <h3 data-i18n="statConfirmedAppointments">حجوزات مؤكدة</h3>
+                            <div class="stat-value" id="statCountConfirmed">0</div>
+                        </div>
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
+                    </div>
+                    <div class="stat-card stat-completed">
+                        <div class="stat-info">
+                            <h3 data-i18n="statCompletedAppointments">حجوزات مكتملة</h3>
+                            <div class="stat-value" id="statCountCompleted">0</div>
+                        </div>
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-badge-check"></i></div>
+                    </div>
+                    <div class="stat-card stat-cancelled">
+                        <div class="stat-info">
+                            <h3 data-i18n="statCancelledAppointments">حجوزات ملغاة</h3>
+                            <div class="stat-value" id="statCountCancelled">0</div>
+                        </div>
+                        <div class="stat-icon-wrap"><i class="fa-solid fa-ban"></i></div>
+                    </div>
+                </div>
+
+                <!-- Recent Appointments Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-calendar-check" style="color: var(--primary);"></i>
+                            <span data-i18n="recentAppointments">أحدث طلبات الحجز الواردة</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;">
+                            <a href="intake.html" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-user-plus"></i> <span data-i18n="navIntake">استقبال المرضى</span>
+                            </a>
+                            <a href="prescription.html" class="btn btn-outline btn-sm">
+                                <i class="fa-solid fa-prescription"></i> <span data-i18n="navPrescription">كتابة الروشتة</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="appointmentPatient">المريض</th>
+                                    <th data-i18n="appointmentDoctor">الطبيب</th>
+                                    <th data-i18n="appointmentBranch">الفرع</th>
+                                    <th data-i18n="appointmentDay">اليوم المفضل</th>
+                                    <th data-i18n="appointmentStatus">الحالة</th>
+                                    <th data-i18n="appointmentDate">التاريخ</th>
+                                    <th data-i18n="appointmentActions">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentAppointmentsBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="empty-state" id="emptyRecentState" style="display: none;">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                        <p data-i18n="noDataFound">لا توجد حجوزات مسجلة حالياً</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

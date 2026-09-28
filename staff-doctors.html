@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="titleDoctors">عيادات مسجد الجامع - الأطباء</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="brand-logo">
+                    <div class="brand-logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+                    <span data-i18n="brandName">عيادات مسجد الجامع</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item doctor-hide">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span data-i18n="navDashboard">الرئيسية - طلبات الحجز</span>
+                    <span class="nav-badge" id="sidebarAppointmentsBadge">0</span>
+                </a>
+                <a href="intake.html" class="nav-item">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span data-i18n="navIntake">استقبال المرضى</span>
+                </a>
+                <a href="prescription.html" class="nav-item">
+                    <i class="fa-solid fa-prescription"></i>
+                    <span data-i18n="navPrescription">كتابة الروشتة</span>
+                </a>
+                <a href="patients.html" class="nav-item">
+                    <i class="fa-solid fa-user-injured"></i>
+                    <span data-i18n="navPatients">بيانات المرضى</span>
+                </a>
+                <div class="nav-section-title" data-i18n="sectionData">البيانات والأقسام</div>
+                <a href="staff-doctors.html" class="nav-item active">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span data-i18n="navStaffDoctors">الأطباء والعاملين</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fa-solid fa-tags"></i>
+                    <span data-i18n="navCategories">أقسام العيادات</span>
+                </a>
+                <a href="clinic-branches.html" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span data-i18n="navClinicBranches">فروع العيادات</span>
+                </a>
+                <div class="nav-section-title admin-only-nav" data-i18n="sectionAdmin" style="display:none">الإدارة</div>
+                <a href="users.html" class="nav-item admin-only-nav" style="display:none">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span data-i18n="navUserManagement">إدارة المستخدمين</span>
+                </a>
+                <div class="nav-section-title reports-nav" data-i18n="sectionReports" style="display:none">التقارير</div>
+                <a href="reports.html" class="nav-item reports-nav" style="display:none">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-i18n="navReports">التقارير</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-mini-card">
+                    <div class="user-avatar" id="sidebarUserAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">...</div>
+                        <div class="user-role-badge" id="sidebarUserRole">...</div>
+                    </div>
+                    <button class="btn-logout" onclick="auth.signOut()" title="تسجيل الخروج" data-i18n-title="tooltipLogout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button class="btn-hamburger" id="btnHamburger"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="topbar-title" data-i18n="navStaffDoctors">الأطباء والعاملين</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="branch-indicator-badge" id="topbarBranchIndicator">
+                        <i class="fa-solid fa-hospital"></i> <span data-i18n="allBranches">جميع الفروع</span>
+                    </div>
+                    <button class="btn-icon" id="themeToggleBtn" onclick="toggleDashboardTheme()" title="الوضع الليلي" data-i18n-title="tooltipTheme"><i class="fa-solid fa-moon"></i></button>
+                    <button class="btn-icon" onclick="notifications.clearUnread()" title="الإشعارات" data-i18n-title="tooltipNotifications"><i class="fa-solid fa-bell"></i><span class="notification-badge-dot" id="topbarNotificationDot"></span></button>
+                    <button id="langSwitcherBtn" class="lang-switcher-btn" onclick="i18n.toggleLanguage()"><i class="fa-solid fa-globe"></i> <span>English</span></button>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+                            <span data-i18n="staffAndDoctors">الأطباء</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <span class="badge badge-active" id="doctorsCountBadge">0</span>
+                            <button class="btn btn-primary btn-sm admin-only" id="btnAddDoctor" style="display:none" onclick="openAddDoctorModal()">
+                                <i class="fa-solid fa-plus"></i> <span data-i18n="addDoctor">إضافة الأطباء</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-bar">
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="doctorSearch" class="form-control" data-i18n-placeholder="searchPlaceholder" placeholder="بحث...">
+                            </div>
+                            <select id="branchFilter" class="form-control" style="max-width:200px;">
+                                <option value="all" data-i18n="allBranches">جميع الفروع</option>
+                            </select>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="doctorNameAr">الاسم</th>
+                                        <th data-i18n="doctorCategory">القسم</th>
+                                        <th data-i18n="doctorBranch">الفرع</th>
+                                        <th data-i18n="doctorWorkingHours">مواعيد العمل</th>
+                                        <th data-i18n="doctorNewFee">الكشف الجديد</th>
+                                        <th data-i18n="colStatus">الحالة</th>
+                                        <th data-i18n="appointmentActions">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctorsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="empty-state" id="emptyDoctorsState" style="display: none;">
+                            <i class="fa-solid fa-user-doctor"></i>
+                            <p data-i18n="noDataFound">لا يوجد أطباء</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Doctor Modal (admin only) -->
+    <div class="modal-backdrop" id="doctorModal">
+        <div class="modal-card" style="max-width: 640px;">
+            <div class="modal-header">
+                <h4 class="card-title" id="doctorModalTitle" data-i18n="addDoctor">إضافة طبيب</h4>
+                <button class="btn btn-icon btn-sm" onclick="closeDoctorModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="doctorForm" onsubmit="handleDoctorFormSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="doctorIdInput">
+
+                    <!-- Doctor profile picture (shown on the customer website's doctor card) -->
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="doctorAvatar">الصورة الشخصية (الأفاتار)</label>
+                        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                            <div id="doctorAvatarPreview" style="width:76px;height:76px;border-radius:50%;overflow:hidden;border:2px solid var(--primary);background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.9rem;flex-shrink:0;">
+                                <i class="fa-solid fa-user-doctor"></i>
+                            </div>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                <label class="btn btn-outline btn-sm" for="doctorAvatarFile" style="cursor:pointer;">
+                                    <i class="fa-solid fa-camera"></i> <span id="doctorAvatarUploadLabel">رفع صورة</span>
+                                </label>
+                                <input type="file" id="doctorAvatarFile" accept="image/*" onchange="onDoctorAvatarSelected(this)" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
+                                <button type="button" class="btn btn-danger btn-sm" id="btnRemoveDoctorAvatar" onclick="removeDoctorAvatar()" style="display:none;">
+                                    <i class="fa-solid fa-trash"></i> <span data-i18n="removeAvatar">حذف الصورة</span>
+                                </button>
+                            </div>
+                        </div>
+                        <small style="color:var(--text-muted);" data-i18n="avatarHint">تظهر الصورة في كارت الطبيب على موقع العملاء (صورة حتى 3 ميجا).</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorNameAr">الاسم (بالعربية) *</label>
+                            <input type="text" id="doctorNameArInput" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorNameEn">الاسم (بالإنجليزية)</label>
+                            <input type="text" id="doctorNameEnInput" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="doctorBio">نبذة مختصرة</label>
+                        <textarea id="doctorBioInput" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorSpecialty">التخصص</label>
+                            <input type="text" id="doctorSpecialtyInput" class="form-control"
+                                   placeholder="مثال: زراعة الأسنان">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorCategory">القسم</label>
+                            <select id="doctorCategoryInput" class="form-control"><option value="">--</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorBranch">الفرع</label>
+                            <select id="doctorBranchInput" class="form-control"><option value="">--</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="doctorWorkingHours">مواعيد العمل</label>
+                        <div class="work-hours-wrap" id="workHoursList"></div>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="addWorkHourRow()">
+                            <i class="fa-solid fa-plus"></i> <span data-i18n="addDaySlot">إضافة موعد</span>
+                        </button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorNewFee">قيمة الكشف الجديد</label>
+                            <input type="number" id="doctorNewFeeInput" class="form-control" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="doctorFollowupFee">قيمة إعادة الكشف</label>
+                            <input type="number" id="doctorFollowupFeeInput" class="form-control" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeDoctorModal()" data-i18n="cancel">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="save">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/staff-doctors.js"></script>
+</body>
+</html>

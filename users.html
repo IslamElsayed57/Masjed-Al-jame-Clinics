@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="titleUsers">عيادات مسجد الجامع - إدارة المستخدمين</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="brand-logo">
+                    <div class="brand-logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+                    <span data-i18n="brandName">عيادات مسجد الجامع</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item doctor-hide">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span data-i18n="navDashboard">الرئيسية - طلبات الحجز</span>
+                    <span class="nav-badge" id="sidebarAppointmentsBadge">0</span>
+                </a>
+                <a href="intake.html" class="nav-item">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span data-i18n="navIntake">استقبال المرضى</span>
+                </a>
+                <a href="prescription.html" class="nav-item">
+                    <i class="fa-solid fa-prescription"></i>
+                    <span data-i18n="navPrescription">كتابة الروشتة</span>
+                </a>
+                <a href="patients.html" class="nav-item">
+                    <i class="fa-solid fa-user-injured"></i>
+                    <span data-i18n="navPatients">بيانات المرضى</span>
+                </a>
+                <div class="nav-section-title" data-i18n="sectionData">البيانات والأقسام</div>
+                <a href="staff-doctors.html" class="nav-item">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span data-i18n="navStaffDoctors">الأطباء والعاملين</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fa-solid fa-tags"></i>
+                    <span data-i18n="navCategories">أقسام العيادات</span>
+                </a>
+                <a href="clinic-branches.html" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span data-i18n="navClinicBranches">فروع العيادات</span>
+                </a>
+                <div class="nav-section-title admin-only-nav" data-i18n="sectionAdmin" style="display:none">الإدارة</div>
+                <a href="users.html" class="nav-item admin-only-nav" style="display:none">
+                    <i class="fa-solid fa-users-gear"></i>
+                            <span data-i18n="usersCardTitle">إدارة المستخدمين</span>
+                </a>
+                <div class="nav-section-title reports-nav" data-i18n="sectionReports" style="display:none">التقارير</div>
+                <a href="reports.html" class="nav-item reports-nav" style="display:none">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-i18n="navReports">التقارير</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-mini-card">
+                    <div class="user-avatar" id="sidebarUserAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">...</div>
+                        <div class="user-role-badge" id="sidebarUserRole">...</div>
+                    </div>
+                    <button class="btn-logout" onclick="auth.signOut()" title="تسجيل الخروج" data-i18n-title="tooltipLogout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button class="btn-hamburger" id="btnHamburger"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="topbar-title" data-i18n="usersTitle">إدارة المستخدمين</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="branch-indicator-badge" id="topbarBranchIndicator">
+                        <i class="fa-solid fa-hospital"></i> <span data-i18n="allBranches">جميع الفروع</span>
+                    </div>
+                    <button class="btn-icon" id="themeToggleBtn" onclick="toggleDashboardTheme()" title="الوضع الليلي" data-i18n-title="tooltipTheme"><i class="fa-solid fa-moon"></i></button>
+                    <button class="btn-icon" onclick="notifications.clearUnread()" title="الإشعارات" data-i18n-title="tooltipNotifications"><i class="fa-solid fa-bell"></i><span class="notification-badge-dot" id="topbarNotificationDot"></span></button>
+                    <button id="langSwitcherBtn" class="lang-switcher-btn" onclick="i18n.toggleLanguage()"><i class="fa-solid fa-globe"></i> <span>English</span></button>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-users-gear" style="color: var(--primary);"></i>
+                    <span data-i18n="navUserManagement">إدارة المستخدمين</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <span class="badge badge-active" id="usersCountBadge">0</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="colName">الاسم</th>
+                                        <th data-i18n="colRole">الدور</th>
+                                        <th data-i18n="colBranch">الفرع</th>
+                                        <th data-i18n="colStatus">الحالة</th>
+                                        <th data-i18n="colReports">التقارير</th>
+                                        <th data-i18n="colPatients">المرضى</th>
+                                        <th data-i18n="colCreatedAt">تاريخ الإنشاء</th>
+                                        <th data-i18n="colActions">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" id="emptyUsersState" style="display: none;">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <p data-i18n="emptyUsers">لا يوجد مستخدمين</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal-backdrop" id="userModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h4 class="card-title" id="userModalTitle" data-i18n="editUserTitle">تعديل المستخدم</h4>
+                <button class="btn btn-icon btn-sm" onclick="closeUserModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="userForm" onsubmit="handleUserFormSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="userIdInput">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="fullNameLabel">الاسم الكامل</label>
+                        <input type="text" id="userNameInput" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="colRole">الدور</label>
+                        <select id="userRoleInput" class="form-control">
+                            <option value="staff" data-i18n="roleStaff">موظف (Staff)</option>
+                            <option value="doctor" data-i18n="roleDoctor">طبيب (Doctor)</option>
+                            <option value="clinic_admin" data-i18n="roleAdmin">مدير النظام (Admin)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="colStatus">الحالة</label>
+                        <select id="userActiveInput" class="form-control">
+                            <option value="true" data-i18n="statusActive">نشط</option>
+                            <option value="false" data-i18n="statusInactive">معطل</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="phoneLabel">ال Phone</label>
+                        <input type="text" id="userMobileInput" class="form-control">
+                    </div>
+                    <div class="form-group" id="userReportsGroup">
+                        <label class="form-label" data-i18n="reportsPermission">صلاحية عرض التقارير</label>
+                        <select id="userReportsInput" class="form-control">
+                            <option value="false" data-i18n="no">لا</option>
+                            <option value="true" data-i18n="yes">نعم</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="userPatientsGroup">
+                        <label class="form-label" data-i18n="patientsPermission">صلاحية عرض المرضى</label>
+                        <select id="userPatientsInput" class="form-control">
+                            <option value="true" data-i18n="yes">نعم</option>
+                            <option value="false" data-i18n="no">لا</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="colBranch">الفرع</label>
+                        <select id="userBranchInput" class="form-control">
+                            <option value="" data-i18n="noBranch">بدون فرع</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger btn-sm" id="btnDeleteUser" onclick="deleteUser()" style="margin-inline-start:auto;">
+                        <i class="fa-solid fa-trash"></i> <span data-i18n="deleteBtn">حذف</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()" data-i18n="cancel">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="save">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/users.js"></script>
+</body>
+</html>

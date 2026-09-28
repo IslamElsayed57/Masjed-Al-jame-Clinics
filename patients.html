@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="titlePatients">عيادات مسجد الجامع - بيانات المرضى</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/print.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="brand-logo">
+                    <div class="brand-logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+                    <span data-i18n="brandName">عيادات مسجد الجامع</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item doctor-hide">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span data-i18n="navDashboard">الرئيسية - طلبات الحجز</span>
+                    <span class="nav-badge" id="sidebarAppointmentsBadge">0</span>
+                </a>
+                <a href="intake.html" class="nav-item">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span data-i18n="navIntake">استقبال المرضى</span>
+                </a>
+                <a href="prescription.html" class="nav-item">
+                    <i class="fa-solid fa-prescription"></i>
+                    <span data-i18n="navPrescription">كتابة الروشتة</span>
+                </a>
+                <a href="patients.html" class="nav-item active">
+                    <i class="fa-solid fa-user-injured"></i>
+                    <span data-i18n="navPatients">بيانات المرضى</span>
+                </a>
+                <div class="nav-section-title" data-i18n="sectionData">البيانات والأقسام</div>
+                <a href="staff-doctors.html" class="nav-item">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span data-i18n="navStaffDoctors">الأطباء والعاملين</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fa-solid fa-tags"></i>
+                    <span data-i18n="navCategories">أقسام العيادات</span>
+                </a>
+                <a href="clinic-branches.html" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span data-i18n="navClinicBranches">فروع العيادات</span>
+                </a>
+                <div class="nav-section-title admin-only-nav" data-i18n="sectionAdmin" style="display:none">الإدارة</div>
+                <a href="users.html" class="nav-item admin-only-nav" style="display:none">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span data-i18n="navUserManagement">إدارة المستخدمين</span>
+                </a>
+                <div class="nav-section-title reports-nav" data-i18n="sectionReports" style="display:none">التقارير</div>
+                <a href="reports.html" class="nav-item reports-nav" style="display:none">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-i18n="navReports">التقارير</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-mini-card">
+                    <div class="user-avatar" id="sidebarUserAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">...</div>
+                        <div class="user-role-badge" id="sidebarUserRole">...</div>
+                    </div>
+                    <button class="btn-logout" onclick="auth.signOut()" title="تسجيل الخروج" data-i18n-title="tooltipLogout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button class="btn-hamburger" id="btnHamburger"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="topbar-title" data-i18n="navPatients">بيانات المرضى</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="branch-indicator-badge" id="topbarBranchIndicator">
+                        <i class="fa-solid fa-hospital"></i> <span data-i18n="allBranches">جميع الفروع</span>
+                    </div>
+                    <button class="btn-icon" id="themeToggleBtn" onclick="toggleDashboardTheme()" title="الوضع الليلي" data-i18n-title="tooltipTheme"><i class="fa-solid fa-moon"></i></button>
+                    <button class="btn-icon" onclick="notifications.clearUnread()" title="الإشعارات" data-i18n-title="tooltipNotifications"><i class="fa-solid fa-bell"></i><span class="notification-badge-dot" id="topbarNotificationDot"></span></button>
+                    <button id="langSwitcherBtn" class="lang-switcher-btn" onclick="i18n.toggleLanguage()"><i class="fa-solid fa-globe"></i> <span>English</span></button>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-user-injured" style="color: var(--primary);"></i>
+                            <span data-i18n="navPatients">بيانات المرضى</span>
+                            <span class="badge badge-active" id="patientsCountBadge" style="margin-inline-start:0.5rem;">0</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1rem;">
+                            <div class="search-input-group" style="flex:1;min-width:220px;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="patientSearch" class="form-control" placeholder="بحث بالاسم أو الهاتف...">
+                            </div>
+                            <div style="width:180px;">
+                                <input type="date" id="patientDateFilter" class="form-control" title="فلتر بالتاريخ">
+                            </div>
+                            <div class="search-input-group" style="width:180px;">
+                                <i class="fa-solid fa-stethoscope"></i>
+                                <input type="text" id="patientDiagnosisFilter" class="form-control" placeholder="بحث بالتشخيص...">
+                            </div>
+                            <div style="width:200px;">
+                                <select id="patientFollowupFilter" class="form-control">
+                                    <option value="all" data-i18n="filterAll">كل المرضى</option>
+                                    <option value="has_followup" data-i18n="filterHasFollowup">عليهم إعادة كشف</option>
+                                    <option value="no_followup" data-i18n="filterNoFollowup">بدون إعادة كشف</option>
+                                    <option value="overdue" data-i18n="filterOverdue">متأخر عن إعادة الكشف</option>
+                                    <option value="today" data-i18n="filterToday">اعادة الكشف اليوم</option>
+                                </select>
+                            </div>
+                            <div style="width:220px;">
+                                <select id="patientDoctorFilter" class="form-control">
+                                    <option value="all">كل الأطباء</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="navPatients">المريض</th>
+                                        <th data-i18n="colGender">الجنس</th>
+                                        <th data-i18n="colAge">العمر</th>
+                                        <th data-i18n="colPhone">الهاتف</th>
+                                        <th data-i18n="navStaffDoctors">الطبيب</th>
+                                        <th data-i18n="colVisitType">نوع الكشف</th>
+                                        <th data-i18n="visitDate">التاريخ</th>
+                                        <th data-i18n="allPrescriptions">الروشتات</th>
+                                        <th data-i18n="rxDiagnosis">التشخيص</th>
+                                        <th data-i18n="followupDays">اعادة الكشف</th>
+                                        <th data-i18n="appointmentActions">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patientsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" id="emptyPatientsState" style="display: none;">
+                            <i class="fa-solid fa-user-injured"></i>
+                            <p data-i18n="noDataFound">لا يوجد مرضى</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Patient Profile Modal -->
+    <div class="modal-backdrop" id="patientModal">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h4 class="card-title" id="patientModalTitle" data-i18n="patientProfile">ملف المريض</h4>
+                <button class="btn btn-icon btn-sm" onclick="closePatientModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="patientModalBody">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Uploaded Image Viewer Modal -->
+    <div class="modal-backdrop" id="imageViewerModal">
+        <div class="image-viewer-card">
+            <div class="modal-header">
+                <h4 class="card-title" id="imageViewerTitle">صورة</h4>
+                <button class="btn btn-icon btn-sm" onclick="closeImageViewer()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="image-viewer-body">
+                <img id="imageViewerImg" src="" alt="صورة">
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Patient Modal -->
+    <div class="modal-backdrop" id="editPatientModal">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h4 class="card-title" data-i18n="editPatientTitle">تعديل بيانات المريض</h4>
+                <button class="btn btn-icon btn-sm" onclick="closeEditPatientModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="editPatientForm" onsubmit="saveEditPatient(event)">
+                    <input type="hidden" id="editPatientId">
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="patientNameLabel">اسم المريض</label>
+                            <input type="text" id="editPatientName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="colPhone">الهاتف</label>
+                            <input type="tel" id="editPatientPhone" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="colAge">العمر</label>
+                            <input type="number" id="editPatientAge" class="form-control" min="0" max="130">
+                        </div>
+                    </div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="patientWeightLabel">الوزن (كجم)</label>
+                            <input type="number" id="editPatientWeight" class="form-control" min="0" max="500" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="colGender">الجنس</label>
+                            <select id="editPatientGender" class="form-control">
+                                <option value="male" data-i18n="genderMale">ذكر</option>
+                                <option value="female" data-i18n="genderFemale">أنثى</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="followupDaysLabel">اعادة الكشف (أيام)</label>
+                            <input type="number" id="editPatientFollowup" class="form-control" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                            <label class="form-label" data-i18n="complaintLabel">الشكوى</label>
+                        <textarea id="editPatientComplaint" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditPatientModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">حفظ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prescription PDF Preview (hidden, shown in print) — re-renders any
+         past prescription from clinic_prescriptions exactly like the
+         original printout, so patients.js can reprint/save it as PDF.
+         Same structure/IDs as prescription.html's #rxPrintArea. -->
+    <div id="rxPrintArea" style="display:none;">
+        <div class="rx-sheet" id="rxSheet">
+            <div class="rx-header">
+                <i class="fa-solid fa-hospital-user"></i>
+                <span id="printBrand">عيادات مسجد الجامع</span>
+                <span class="rx-badge">Prescription</span>
+            </div>
+            <div id="printDate" class="rx-date"></div>
+            <div class="rx-info-grid">
+                <div><span>Patient Name:</span> <strong id="printName"></strong></div>
+                <div><span>Age:</span> <strong id="printAge"></strong></div>
+                <div><span>Weight:</span> <strong id="printWeight"></strong></div>
+                <div><span>Mobile:</span> <strong id="printPhone"></strong></div>
+            </div>
+            <div id="printDiagnosis" class="rx-notes" style="display:none;"></div>
+            <div class="rx-meds-title">Prescribed Medicines</div>
+            <div id="printMeds"></div>
+            <div class="rx-meds-title" id="printTestsTitle" style="display:none;">Required Tests & Radiology</div>
+            <div id="printTests"></div>
+            <div id="printNotes" class="rx-notes"></div>
+            <div id="printFollowup" class="rx-notes" style="display:none;"></div>
+            <div class="rx-footer">
+                <div class="rx-doctor">
+                    <span id="printDoctorName">Dr. </span>
+                </div>
+                <div id="printSignature" class="rx-signature"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/patients.js"></script>
+</body>
+</html>

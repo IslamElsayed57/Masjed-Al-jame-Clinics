@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="titleReports">عيادات مسجد الجامع - التقارير</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="reports-page">
+
+    <div class="app-wrapper">
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="brand-logo">
+                    <div class="brand-logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+                    <span data-i18n="brandName">عيادات مسجد الجامع</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item doctor-hide">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span data-i18n="navDashboard">الرئيسية - طلبات الحجز</span>
+                    <span class="nav-badge" id="sidebarAppointmentsBadge">0</span>
+                </a>
+                <a href="intake.html" class="nav-item">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span data-i18n="navIntake">استقبال المرضى</span>
+                </a>
+                <a href="prescription.html" class="nav-item">
+                    <i class="fa-solid fa-prescription"></i>
+                    <span data-i18n="navPrescription">كتابة الروشتة</span>
+                </a>
+                <a href="patients.html" class="nav-item">
+                    <i class="fa-solid fa-user-injured"></i>
+                    <span data-i18n="navPatients">بيانات المرضى</span>
+                </a>
+                <div class="nav-section-title" data-i18n="sectionData">البيانات والأقسام</div>
+                <a href="staff-doctors.html" class="nav-item">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span data-i18n="navStaffDoctors">الأطباء والعاملين</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fa-solid fa-tags"></i>
+                    <span data-i18n="navCategories">أقسام العيادات</span>
+                </a>
+                <a href="clinic-branches.html" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span data-i18n="navClinicBranches">فروع العيادات</span>
+                </a>
+                <div class="nav-section-title admin-only-nav" data-i18n="sectionAdmin" style="display:none">الإدارة</div>
+                <a href="users.html" class="nav-item admin-only-nav" style="display:none">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span data-i18n="navUserManagement">إدارة المستخدمين</span>
+                </a>
+                <div class="nav-section-title reports-nav" data-i18n="sectionReports" style="display:none">التقارير</div>
+                <a href="reports.html" class="nav-item active">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-i18n="navReports">التقارير</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-mini-card">
+                    <div class="user-avatar" id="sidebarUserAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">...</div>
+                        <div class="user-role-badge" id="sidebarUserRole">...</div>
+                    </div>
+                    <button class="btn-logout" onclick="auth.signOut()" title="تسجيل الخروج" data-i18n-title="tooltipLogout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button class="btn-hamburger" id="btnHamburger"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="topbar-title" data-i18n="navReports">التقارير</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="branch-indicator-badge" id="topbarBranchIndicator">
+                        <i class="fa-solid fa-hospital"></i> <span data-i18n="allBranches">جميع الفروع</span>
+                    </div>
+                    <button class="btn-icon" id="themeToggleBtn" onclick="toggleDashboardTheme()" title="الوضع الليلي" data-i18n-title="tooltipTheme"><i class="fa-solid fa-moon"></i></button>
+                    <button class="btn-icon" onclick="notifications.clearUnread()" title="الإشعارات" data-i18n-title="tooltipNotifications"><i class="fa-solid fa-bell"></i><span class="notification-badge-dot" id="topbarNotificationDot"></span></button>
+                    <button id="langSwitcherBtn" class="lang-switcher-btn" onclick="i18n.toggleLanguage()"><i class="fa-solid fa-globe"></i> <span>English</span></button>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <!-- Filter Bar -->
+                <div class="content-card" style="margin-bottom:1rem;">
+                    <div class="card-body">
+                        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="width:180px;">
+                                <label class="form-label" data-i18n="reportPeriod">الفترة</label>
+                                <select id="reportPeriod" class="form-control">
+                                    <option value="all" data-i18n="periodAll">الكل</option>
+                                    <option value="today" data-i18n="periodToday">اليوم</option>
+                                    <option value="week" data-i18n="periodLast7Days">آخر 7 أيام</option>
+                                    <option value="month" data-i18n="periodLast30Days">آخر 30 يوم</option>
+                                    <option value="custom" data-i18n="periodCustom">مخصص</option>
+                                </select>
+                            </div>
+                            <div style="width:180px;display:none;" id="customDateWrap">
+                                <label class="form-label" data-i18n="fromDate">من</label>
+                                <input type="date" id="reportFromDate" class="form-control">
+                            </div>
+                            <div style="width:180px;display:none;" id="customDateWrap2">
+                                <label class="form-label" data-i18n="toDate">إلى</label>
+                                <input type="date" id="reportToDate" class="form-control">
+                            </div>
+                            <div style="width:240px;">
+                                <label class="form-label" data-i18n="reportDoctorLabel">الطبيب</label>
+                                <select id="reportDoctorFilter" class="form-control">
+                                    <option value="all" data-i18n="allDoctors">جميع الأطباء</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="loadReports()"><i class="fa-solid fa-chart-line"></i> <span data-i18n="btnShowReport">عرض التقرير</span></button>
+                            <button class="btn btn-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i> <span data-i18n="btnPrint">طباعة</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="stats-grid" id="reportSummaryCards">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Per-Doctor Table -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+                            <span data-i18n="reportPerDoctor">إحصائيات حسب الطبيب</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="reportDoctorLabel">الطبيب</th>
+                                        <th data-i18n="thConfirmedVisits">الزيارات المؤكدة</th>
+                                        <th data-i18n="thNewVisit">كشف جديد</th>
+                                        <th data-i18n="thFollowup">إعادة كشف</th>
+                                        <th data-i18n="thPrescriptions">روشتات</th>
+                                        <th data-i18n="thPatients">مرضى</th>
+                                        <th data-i18n="thEstimatedValue">القيمة التقديرية</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/reports.js"></script>
+</body>
+</html>
