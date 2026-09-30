@@ -68,13 +68,13 @@ async function loadCategories() {
                 <tr>
                     <td>
                         <div style="display:flex;align-items:center;gap:0.6rem;">
-                            <i class="fa-solid ${c.icon || "fa-stethoscope"}" style="color:var(--primary);"></i>
-                            <strong>${name}</strong>
+                            <i class="fa-solid ${utils.escHtml(c.icon || "fa-stethoscope")}" style="color:var(--primary);"></i>
+                            <strong>${utils.escHtml(name)}</strong>
                         </div>
                     </td>
                     <td>
-                        <small style="color:var(--text-muted);">${c.name_en || "-"}</small>
-                        ${c.slug ? `<div><code>${c.slug}</code></div>` : ""}
+                        <small style="color:var(--text-muted);">${utils.escHtml(c.name_en || "-")}</small>
+                        ${c.slug ? `<div><code>${utils.escHtml(c.slug)}</code></div>` : ""}
                     </td>
                     <td>${statusBadge}</td>
                     <td>${actionBtns}</td>

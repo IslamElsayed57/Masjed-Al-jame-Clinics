@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="titlePatients">عيادات مسجد الجامع - بيانات المرضى</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/print.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 </head>
 <body>
 
@@ -152,6 +152,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="patientsPagination" style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:1rem;"></div>
                         <div class="empty-state" id="emptyPatientsState" style="display: none;">
                             <i class="fa-solid fa-user-injured"></i>
                             <p data-i18n="noDataFound">لا يوجد مرضى</p>

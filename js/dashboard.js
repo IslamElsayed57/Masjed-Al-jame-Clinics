@@ -61,14 +61,14 @@ async function loadDashboardStats() {
         set("statCountCompleted", counts.completed);
         set("statCountCancelled", counts.cancelled);
 
-        // Follow-up patients from patient data section (doctor: only own patients; admin: all)
-        let ptQuery = client.from("clinic_patients").select("id", { count: "exact" }).eq("is_new_visit", false);
+        // Total patients from patient data section (doctor: only own patients; admin: all)
+        let ptQuery = client.from("clinic_patients").select("id", { count: "exact" });
         if (isDoctor && currentUserDoctorId) {
             ptQuery = ptQuery.eq("doctor_id", currentUserDoctorId);
         }
-        const { data: pts, error: ptErr } = await ptQuery;
+        const { count: patientCount, error: ptErr } = await ptQuery;
         if (!ptErr) {
-            set("statTotalPatients", (pts && pts.length) || 0);
+            set("statTotalPatients", patientCount || 0);
         }
 
     } catch (err) {

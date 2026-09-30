@@ -32,9 +32,12 @@ function renderAvatarPreview() {
     const uploadLabel = document.getElementById("doctorAvatarUploadLabel");
     if (!box) return;
 
-    const shownUrl = avatarState.remove ? null : (avatarState.previewUrl || avatarState.currentUrl);
+    const candidateUrl = avatarState.remove ? null : (avatarState.previewUrl || avatarState.currentUrl);
+    const shownUrl = candidateUrl && (/^https:\/\//i.test(candidateUrl) || candidateUrl.startsWith("blob:"))
+        ? candidateUrl
+        : null;
     box.innerHTML = shownUrl
-        ? `<img src="${shownUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+        ? `<img src="${utils.escHtml(shownUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
         : `<i class="fa-solid fa-user-doctor"></i>`;
 
     if (removeBtn) removeBtn.style.display = shownUrl ? "" : "none";
@@ -127,7 +130,7 @@ async function loadCategories() {
         const select = document.getElementById("doctorCategoryInput");
         if (select) {
             select.innerHTML = `<option value="">--</option>` +
-                categoriesList.map(c => `<option value="${c.id}">${i18n.currentLang === "en" ? (c.name_en || c.name_ar) : c.name_ar}</option>`).join("");
+                categoriesList.map(c => `<option value="${utils.escHtml(c.id)}">${utils.escHtml(i18n.currentLang === "en" ? (c.name_en || c.name_ar) : c.name_ar)}</option>`).join("");
         }
     } catch (e) {
         console.error("Load categories (doctors) error:", e);
@@ -144,7 +147,7 @@ async function loadBranches() {
         if (filter) {
             const currentVal = filter.value;
             filter.innerHTML = `<option value="all">${i18n.t("allBranches")}</option>` +
-                branchesList.map(b => `<option value="${b.id}">${i18n.currentLang === "en" ? (b.name_en || b.name_ar) : b.name_ar}</option>`).join("");
+                branchesList.map(b => `<option value="${utils.escHtml(b.id)}">${utils.escHtml(i18n.currentLang === "en" ? (b.name_en || b.name_ar) : b.name_ar)}</option>`).join("");
             filter.value = currentVal;
         }
 
@@ -152,7 +155,7 @@ async function loadBranches() {
         const select = document.getElementById("doctorBranchInput");
         if (select) {
             select.innerHTML = `<option value="">--</option>` +
-                branchesList.map(b => `<option value="${b.id}">${i18n.currentLang === "en" ? (b.name_en || b.name_ar) : b.name_ar}</option>`).join("");
+                branchesList.map(b => `<option value="${utils.escHtml(b.id)}">${utils.escHtml(i18n.currentLang === "en" ? (b.name_en || b.name_ar) : b.name_ar)}</option>`).join("");
         }
     } catch (e) {
         console.error("Load branches (doctors) error:", e);
@@ -211,7 +214,7 @@ async function loadDoctors() {
             const hours = Array.isArray(d.working_hours) && d.working_hours.length
                 ? d.working_hours.map(h => {
                     const day = i18n.currentLang === "en" ? (toEnDay(h.day) || h.day) : h.day;
-                    return `<span class="badge badge-info badge-sm" style="margin:0.1rem;"><i class="fa-solid fa-clock"></i> ${day} ${h.start}-${h.end}</span>`;
+                    return `<span class="badge badge-info badge-sm" style="margin:0.1rem;"><i class="fa-solid fa-clock"></i> ${utils.escHtml(day)} ${utils.escHtml(h.start)}-${utils.escHtml(h.end)}</span>`;
                 }).join(" ")
                 : `<small style="color:var(--text-muted);">-</small>`;
 
@@ -236,16 +239,16 @@ async function loadDoctors() {
                     <td>
                         <div style="display:flex;align-items:center;gap:0.6rem;">
                             <div class="user-avatar" style="width:32px;height:32px;font-size:0.8rem;overflow:hidden;">${d.avatar_url
-                                ? `<img src="${d.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;">`
-                                : `<i class="fa-solid ${d.avatar_icon || "fa-user-doctor"}"></i>`}</div>
+                                ? `<img src="${utils.escHtml(d.avatar_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+                                : `<i class="fa-solid ${utils.escHtml(d.avatar_icon || "fa-user-doctor")}"></i>`}</div>
                             <div>
-                                <strong>${name}</strong>
-                                ${d.bio ? `<div><small style="color:var(--text-muted);">${d.bio}</small></div>` : ""}
+                                <strong>${utils.escHtml(name)}</strong>
+                                ${d.bio ? `<div><small style="color:var(--text-muted);">${utils.escHtml(d.bio)}</small></div>` : ""}
                             </div>
                         </div>
                     </td>
-                    <td><span class="badge badge-info">${cat}</span></td>
-                    <td><small style="color:var(--text-muted);font-weight:600;">${branch}</small></td>
+                    <td><span class="badge badge-info">${utils.escHtml(cat)}</span></td>
+                    <td><small style="color:var(--text-muted);font-weight:600;">${utils.escHtml(branch)}</small></td>
                     <td style="max-width:260px;">${hours}</td>
                     <td><strong style="color:var(--primary);">${utils.formatCurrency(d.new_visit_fee)}</strong> / <small style="color:var(--text-muted);">${utils.formatCurrency(d.followup_fee)}</small></td>
                     <td>${statusBadge}</td>

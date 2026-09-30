@@ -268,7 +268,11 @@ class AuthService {
                     const branchEl = document.getElementById("topbarBranchIndicator");
                     if (branchEl && data) {
                         const branchName = i18n.currentLang === "en" ? (data.name_en || data.name_ar) : data.name_ar;
-                        branchEl.innerHTML = `<i class="fa-solid fa-hospital"></i> <span>${branchName}</span>`;
+                        const iconEl = document.createElement("i");
+                        iconEl.className = "fa-solid fa-hospital";
+                        const nameEl = document.createElement("span");
+                        nameEl.textContent = branchName;
+                        branchEl.replaceChildren(iconEl, nameEl);
                     }
                 });
         }

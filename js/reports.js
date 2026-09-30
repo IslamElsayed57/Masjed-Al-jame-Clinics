@@ -71,7 +71,7 @@ async function loadDoctorsForReport() {
                 select.innerHTML = `<option value="${currentUserDoctorId || ""}">${label}</option>`;
             } else {
                 select.innerHTML = `<option value="all">${i18n.t("allDoctors")}</option>` +
-                    reportDoctors.map(d => `<option value="${d.id}">${i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar}</option>`).join("");
+                    reportDoctors.map(d => `<option value="${utils.escHtml(d.id)}">${utils.escHtml(i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar)}</option>`).join("");
             }
         }
     } catch (e) {
@@ -234,7 +234,7 @@ async function loadReports() {
             const name = i18n.currentLang === "en" ? (r.doc.name_en || r.doc.name_ar) : r.doc.name_ar;
             return `
                 <tr>
-                    <td><strong>${name}</strong></td>
+                    <td><strong>${utils.escHtml(name)}</strong></td>
                     <td><span class="badge badge-info">${r.confirmedVisits}</span></td>
                     <td>${r.newCount}</td>
                     <td>${r.followCount}</td>

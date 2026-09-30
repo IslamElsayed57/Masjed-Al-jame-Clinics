@@ -66,10 +66,10 @@ async function loadBranches() {
 
             return `
                 <tr>
-                    <td><strong>${name}</strong></td>
-                    <td><small style="color:var(--text-muted);">${b.city || "-"}</small></td>
-                    <td><small>${b.address || "-"}</small></td>
-                    <td><a href="tel:${b.phone}" style="color:var(--primary);font-weight:600;">${b.phone || "-"}</a></td>
+                    <td><strong>${utils.escHtml(name)}</strong></td>
+                    <td><small style="color:var(--text-muted);">${utils.escHtml(b.city || "-")}</small></td>
+                    <td><small>${utils.escHtml(b.address || "-")}</small></td>
+                    <td><a href="tel:${utils.escHtml(String(b.phone || "").replace(/[^+0-9]/g, ""))}" style="color:var(--primary);font-weight:600;">${utils.escHtml(b.phone || "-")}</a></td>
                     <td>${statusBadge}</td>
                     <td>${actionBtns}</td>
                 </tr>

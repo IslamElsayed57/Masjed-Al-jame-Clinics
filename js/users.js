@@ -49,7 +49,7 @@ function populateBranchSelect(selectedId) {
     if (!select) return;
     const placeholder = i18n.t("branchNone");
     select.innerHTML = `<option value="">${placeholder}</option>` +
-        branchesList.map(b => `<option value="${b.id}" ${b.id === selectedId ? "selected" : ""}>${getBranchName(b)}</option>`).join("");
+        branchesList.map(b => `<option value="${utils.escHtml(b.id)}" ${b.id === selectedId ? "selected" : ""}>${utils.escHtml(getBranchName(b))}</option>`).join("");
 }
 
 async function loadUsers() {
@@ -101,16 +101,16 @@ async function loadUsers() {
                     <td>
                         <div style="display:flex;align-items:center;gap:0.6rem;">
                             <div class="user-avatar" style="width:32px;height:32px;font-size:0.8rem;">
-                                ${(u.full_name || "U").charAt(0).toUpperCase()}
+                                ${utils.escHtml((u.full_name || "U").charAt(0).toUpperCase())}
                             </div>
                             <div>
-                                <strong>${u.full_name || "-"}</strong>
-                                ${u.mobile ? `<div><small style="color:var(--text-muted);">${u.mobile}</small></div>` : ""}
+                                <strong>${utils.escHtml(u.full_name || "-")}</strong>
+                                ${u.mobile ? `<div><small style="color:var(--text-muted);">${utils.escHtml(u.mobile)}</small></div>` : ""}
                             </div>
                         </div>
                     </td>
                     <td><span class="badge ${role.cls}">${roleLabel}</span></td>
-                    <td>${u.branch_id ? `<span class="badge badge-info">${getBranchName(branchesList.find(b => b.id === u.branch_id) || {name_ar: "-"})}</span>` : `<small style="color:var(--text-muted);">-</small>`}</td>
+                    <td>${u.branch_id ? `<span class="badge badge-info">${utils.escHtml(getBranchName(branchesList.find(b => b.id === u.branch_id) || {name_ar: "-"}))}</span>` : `<small style="color:var(--text-muted);">-</small>`}</td>
                     <td>${statusBadge}</td>
                     <td>${reportsBadge}</td>
                     <td>${patientsBadge}</td>

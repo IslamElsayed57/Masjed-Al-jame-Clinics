@@ -6,7 +6,8 @@ let rxDoctors = [];
 let sigFileUrl = null;
 let currentUserDoctorId = null;
 let isDoctor = false;
-let allPatients = [];
+let patientSearchTimer = null;
+let patientSearchRequest = 0;
 
 document.addEventListener("DOMContentLoaded", async () => {
     utils.setupMobileSidebar();
@@ -30,7 +31,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     notifications.init();
     setTodayDate();
     await loadRxDoctors();
-    await loadPatientsForAutocomplete();
     addMedicineRow();
     setupPatientAutocomplete();
     prefillPatientFromStorage();
@@ -87,7 +87,7 @@ async function loadRxDoctors() {
             // Mandatory field: start with an empty option so nothing is
             // silently pre-selected and the form cannot print unnamed.
             select.innerHTML = `<option value="">${i18n.t("selectDoctor")}</option>` + rxDoctors.map(d =>
-                `<option value="${d.id}">${i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar}</option>`
+                `<option value="${utils.escHtml(d.id)}">${utils.escHtml(i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar)}</option>`
             ).join("");
 
             if (isDoctor && currentUserDoctorId) {
@@ -113,42 +113,33 @@ function updateDoctorNameDisplay() {
     display.value = doc ? (i18n.currentLang === "en" ? (doc.name_en || doc.name_ar) : doc.name_ar) : "";
 }
 
-async function loadPatientsForAutocomplete() {
-    try {
-        let query = db.getClient().from("clinic_patients").select("id, full_name, phone, age, weight, doctor_id");
-        if (isDoctor && currentUserDoctorId) {
-            query = query.eq("doctor_id", currentUserDoctorId);
-        }
-        const { data } = await query;
-        allPatients = data || [];
-    } catch (e) {
-        console.error("Load patients for autocomplete error:", e);
-    }
-}
-
 function setupPatientAutocomplete() {
     const input = document.getElementById("rxPatientName");
     const suggestionsEl = document.getElementById("patientSuggestions");
     if (!input || !suggestionsEl) return;
 
     input.addEventListener("input", () => {
-        const val = input.value.trim().toLowerCase();
+        const val = input.value.trim();
+        document.getElementById("rxLinkedPatientId").value = "";
         if (val.length < 1) {
             suggestionsEl.classList.remove("active");
             return;
         }
+        clearTimeout(patientSearchTimer);
+        patientSearchTimer = setTimeout(() => searchPatientSuggestions(val), 250);
+    });
 
-        const matches = allPatients.filter(p =>
-            (p.full_name || "").toLowerCase().includes(val) ||
-            (p.phone || "").includes(val)
-        ).slice(0, 8);
-
-        if (matches.length === 0) {
-            suggestionsEl.classList.remove("active");
-            return;
-        }
-
-        suggestionsEl.innerHTML = matches.map(p => {
+    async function searchPatientSuggestions(term) {
+        const requestId = ++patientSearchRequest;
+        try {
+            const { data, error } = await db.getClient().rpc("clinic_patient_suggestions", {
+                p_search: term, p_limit: 8
+            });
+            if (error) throw error;
+            if (requestId !== patientSearchRequest || input.value.trim() !== term) return;
+            const matches = data || [];
+            if (!matches.length) { suggestionsEl.classList.remove("active"); return; }
+            suggestionsEl.innerHTML = matches.map(p => {
             const safeName = utils.escHtml(p.full_name);
             const safePhone = utils.escHtml(p.phone || "");
             const safeAge = utils.escHtml(p.age || "");
@@ -159,10 +150,10 @@ function setupPatientAutocomplete() {
                 <span class="suggestion-phone">${safePhone}</span>
             </div>
         `;
-        }).join("");
+            }).join("");
         suggestionsEl.classList.add("active");
 
-        suggestionsEl.querySelectorAll(".patient-suggestion-item").forEach(item => {
+            suggestionsEl.querySelectorAll(".patient-suggestion-item").forEach(item => {
             item.addEventListener("click", () => {
                 input.value = item.dataset.name;
                 const phoneField = document.getElementById("rxPatientPhone");
@@ -175,8 +166,12 @@ function setupPatientAutocomplete() {
                 if (linkedIdField && item.dataset.id) linkedIdField.value = item.dataset.id;
                 suggestionsEl.classList.remove("active");
             });
-        });
-    });
+            });
+        } catch (e) {
+            console.error("Search patient suggestions error:", e);
+            suggestionsEl.classList.remove("active");
+        }
+    }
 
     document.addEventListener("click", (e) => {
         if (!e.target.closest("#rxPatientName") && !e.target.closest("#patientSuggestions")) {
@@ -466,7 +461,7 @@ async function generatePrescriptionPdf() {
         if (!sigFileUrl.startsWith("http")) {
             fullSigUrl = CONFIG.SUPABASE_URL + "/storage/v1/object/public/" + CONFIG.STORAGE_BUCKET + "/" + sigFileUrl;
         }
-        sigEl.innerHTML = `<img src="${fullSigUrl}" alt="signature">`;
+        sigEl.innerHTML = `<img src="${utils.escHtml(fullSigUrl)}" alt="signature">`;
     } else {
         sigEl.innerHTML = "";
     }

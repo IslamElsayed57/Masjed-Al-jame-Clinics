@@ -203,7 +203,7 @@ async function loadDoctors() {
         if (select) {
             select.innerHTML = `<option value="">-- ${i18n.currentLang === "ar" ? "بدون تحديد" : "Unassigned"} --</option>` +
                 doctorsOptions.map(d =>
-                    `<option value="${d.id}">${i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar}</option>`
+                    `<option value="${utils.escHtml(d.id)}">${utils.escHtml(i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar)}</option>`
                 ).join("");
         }
     } catch (e) {

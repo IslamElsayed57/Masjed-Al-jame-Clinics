@@ -6,6 +6,9 @@ let patientsList = [];
 let doctorsOptions = [];
 let currentUserDoctorId = null;
 let isDoctor = false;
+const PATIENTS_PAGE_SIZE = 20;
+let patientsCurrentPage = 1;
+let patientsTotalCount = 0;
 let allRxMap = {}; // patient_id -> [all prescriptions]
 let allRxFlat = {}; // rx_id -> prescription (for direct lookup when reprinting)
 
@@ -34,22 +37,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadDoctorsForFilter();
     await loadPatients();
 
+    const reloadFromFirstPage = () => {
+        patientsCurrentPage = 1;
+        loadPatients();
+    };
+
     const search = document.getElementById("patientSearch");
     if (search) {
         let t;
-        search.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => loadPatients(), 300); });
+        search.addEventListener("input", () => { clearTimeout(t); t = setTimeout(reloadFromFirstPage, 300); });
     }
     const dateFilter = document.getElementById("patientDateFilter");
-    if (dateFilter) dateFilter.addEventListener("change", loadPatients);
+    if (dateFilter) dateFilter.addEventListener("change", reloadFromFirstPage);
     const diagnosisFilter = document.getElementById("patientDiagnosisFilter");
     if (diagnosisFilter) {
         let t;
-        diagnosisFilter.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => loadPatients(), 300); });
+        diagnosisFilter.addEventListener("input", () => { clearTimeout(t); t = setTimeout(reloadFromFirstPage, 300); });
     }
     const followupFilter = document.getElementById("patientFollowupFilter");
-    if (followupFilter) followupFilter.addEventListener("change", loadPatients);
+    if (followupFilter) followupFilter.addEventListener("change", reloadFromFirstPage);
     const doctorFilter = document.getElementById("patientDoctorFilter");
-    if (doctorFilter) doctorFilter.addEventListener("change", loadPatients);
+    if (doctorFilter) doctorFilter.addEventListener("change", reloadFromFirstPage);
 
     window.onLanguageChange = () => loadPatients();
 });
@@ -62,11 +70,11 @@ async function loadDoctorsForFilter() {
         if (select) {
             if (isDoctor && currentUserDoctorId) {
                 const myDoc = doctorsOptions.find(d => d.id === currentUserDoctorId);
-                select.innerHTML = `<option value="${currentUserDoctorId}">${myDoc ? (i18n.currentLang === "en" ? (myDoc.name_en || myDoc.name_ar) : myDoc.name_ar) : i18n.t("me")}</option>`;
+                select.innerHTML = `<option value="${utils.escHtml(currentUserDoctorId)}">${utils.escHtml(myDoc ? (i18n.currentLang === "en" ? (myDoc.name_en || myDoc.name_ar) : myDoc.name_ar) : i18n.t("me"))}</option>`;
             } else {
                 const currentVal = select.value;
                 select.innerHTML = `<option value="all">${i18n.t("allDoctors")}</option>` +
-                    doctorsOptions.map(d => `<option value="${d.id}">${i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar}</option>`).join("");
+                    doctorsOptions.map(d => `<option value="${utils.escHtml(d.id)}">${utils.escHtml(i18n.currentLang === "en" ? (d.name_en || d.name_ar) : d.name_ar)}</option>`).join("");
                 select.value = currentVal;
             }
         }
@@ -77,18 +85,22 @@ async function loadDoctorsForFilter() {
 
 async function loadAllPrescriptions() {
     try {
+        const patientIds = patientsList.map(p => p.id);
+        allRxMap = {};
+        allRxFlat = {};
+        if (!patientIds.length) return;
         let query = db.getClient()
             .from("clinic_prescriptions")
             .select("id, patient_id, patient_name, patient_phone, patient_age, patient_weight, doctor_name, doctor_signature_image, medicines, tests, notes, diagnosis, created_at")
+            .in("patient_id", patientIds)
             .order("created_at", { ascending: false });
 
         if (isDoctor && currentUserDoctorId) {
             query = query.eq("doctor_id", currentUserDoctorId);
         }
 
-        const { data } = await query;
-        allRxMap = {};
-        allRxFlat = {};
+        const { data, error } = await query;
+        if (error) throw error;
         (data || []).forEach(rx => {
             allRxFlat[rx.id] = rx;
             if (rx.patient_id) {
@@ -109,78 +121,29 @@ async function loadPatients() {
     tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:3rem;">${i18n.t("loadingData")}</td></tr>`;
 
     try {
+        const search = document.getElementById("patientSearch")?.value.trim() || null;
+        const doctorValue = document.getElementById("patientDoctorFilter")?.value;
+        const doctorId = isDoctor ? currentUserDoctorId : (doctorValue && doctorValue !== "all" ? doctorValue : null);
+        const dateValue = document.getElementById("patientDateFilter")?.value;
+        const followup = document.getElementById("patientFollowupFilter")?.value || "all";
+        const diagnosis = document.getElementById("patientDiagnosisFilter")?.value.trim() || null;
+        const { data, error } = await db.getClient().rpc("clinic_patients_page", {
+            p_search: search,
+            p_doctor_id: doctorId,
+            p_visit_date: dateValue || null,
+            p_followup: followup,
+            p_diagnosis: diagnosis,
+            p_page: patientsCurrentPage - 1,
+            p_page_size: PATIENTS_PAGE_SIZE
+        });
+        if (error) throw error;
+        patientsList = data?.patients || [];
+        patientsTotalCount = Number(data?.total_count || 0);
         await loadAllPrescriptions();
 
-        let query = db.getClient()
-            .from("clinic_patients")
-            .select("*, doctors(name_ar, name_en)")
-            .order("created_at", { ascending: false });
-
-        if (isDoctor && currentUserDoctorId) {
-            query = query.eq("doctor_id", currentUserDoctorId);
-        }
-
-        const search = document.getElementById("patientSearch")?.value.trim();
-        if (search) {
-            query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
-        }
-        const doctorId = document.getElementById("patientDoctorFilter")?.value;
-        if (doctorId && doctorId !== "all") query.eq("doctor_id", doctorId);
-        const dateFilter = document.getElementById("patientDateFilter")?.value;
-        if (dateFilter) query.eq("visit_date", dateFilter);
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        patientsList = data || [];
-
-        // Client-side followup filter
-        const followupFilter = document.getElementById("patientFollowupFilter")?.value;
-        if (followupFilter && followupFilter !== "all") {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            patientsList = patientsList.filter(p => {
-                if (followupFilter === "has_followup") {
-                    return p.followup_days && p.followup_days > 0;
-                } else if (followupFilter === "no_followup") {
-                    return !p.followup_days || p.followup_days <= 0;
-                } else if (followupFilter === "overdue") {
-                    if (!p.followup_days || !p.visit_date) return false;
-                    const visitDate = new Date(p.visit_date);
-                    const followupDate = new Date(visitDate);
-                    followupDate.setDate(followupDate.getDate() + p.followup_days);
-                    return followupDate < today;
-                } else if (followupFilter === "today") {
-                    if (!p.followup_days || !p.visit_date) return false;
-                    const visitDate = new Date(p.visit_date);
-                    const followupDate = new Date(visitDate);
-                    followupDate.setDate(followupDate.getDate() + p.followup_days);
-                    followupDate.setHours(0, 0, 0, 0);
-                    return followupDate.getTime() === today.getTime();
-                }
-                return true;
-            });
-
-            if (followupFilter === "has_followup") {
-                patientsList.sort((a, b) => {
-                    const dateA = a.visit_date && a.followup_days ? new Date(a.visit_date).getTime() + a.followup_days * 86400000 : Infinity;
-                    const dateB = b.visit_date && b.followup_days ? new Date(b.visit_date).getTime() + b.followup_days * 86400000 : Infinity;
-                    return dateA - dateB;
-                });
-            }
-        }
-
-        // Client-side diagnosis filter
-        const diagnosisFilter = document.getElementById("patientDiagnosisFilter")?.value.trim().toLowerCase();
-        if (diagnosisFilter) {
-            patientsList = patientsList.filter(p => {
-                const patientRx = allRxMap[p.id] || [];
-                return patientRx.some(rx => (rx.diagnosis || "").toLowerCase().includes(diagnosisFilter));
-            });
-        }
-
         const countBadge = document.getElementById("patientsCountBadge");
-        if (countBadge) countBadge.textContent = `${patientsList.length} ${i18n.t("navPatients")}`;
+        if (countBadge) countBadge.textContent = `${patientsTotalCount} ${i18n.t("navPatients")}`;
+        renderPatientsPagination();
 
         if (patientsList.length === 0) {
             tbody.innerHTML = "";
@@ -277,9 +240,9 @@ async function loadPatients() {
                     <td>${genderBadge}</td>
                     <td><small style="color:var(--text-muted);">${p.age ? p.age + " " + i18n.t("yearsUnit") : "-"}</small></td>
                     <td><a href="tel:${utils.escHtml(p.phone)}" style="color:var(--primary);">${utils.escHtml(p.phone) || "-"}</a></td>
-                    <td><span class="badge badge-info">${doctor}</span></td>
+                    <td><span class="badge badge-info">${utils.escHtml(doctor)}</span></td>
                     <td style="white-space:nowrap;">${visitBadge} ${imgIndicator}</td>
-                    <td>${visitDate}</td>
+                    <td>${utils.escHtml(visitDate)}</td>
                     <td>${rxCardsHtml}</td>
                     <td>${diagnosisDisplay}</td>
                     <td>${followupDisplay}</td>
@@ -298,6 +261,20 @@ async function loadPatients() {
         console.error("Load patients error:", err);
         tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#EF4444;padding:2rem;">${i18n.t("errorGeneric")}</td></tr>`;
     }
+}
+
+function renderPatientsPagination() {
+    const host = document.getElementById("patientsPagination");
+    if (!host) return;
+    const pageCount = Math.max(1, Math.ceil(patientsTotalCount / PATIENTS_PAGE_SIZE));
+    patientsCurrentPage = Math.min(patientsCurrentPage, pageCount);
+    host.innerHTML = `<button class="btn btn-secondary btn-sm" ${patientsCurrentPage <= 1 ? "disabled" : ""} onclick="changePatientsPage(-1)">${i18n.currentLang === "en" ? "Previous" : "السابق"}</button><span>${i18n.currentLang === "en" ? `Page ${patientsCurrentPage} of ${pageCount} (${patientsTotalCount} patients)` : `صفحة ${patientsCurrentPage} من ${pageCount} (${patientsTotalCount} مريض)`}</span><button class="btn btn-secondary btn-sm" ${patientsCurrentPage >= pageCount ? "disabled" : ""} onclick="changePatientsPage(1)">${i18n.currentLang === "en" ? "Next" : "التالي"}</button>`;
+}
+
+function changePatientsPage(delta) {
+    const pageCount = Math.max(1, Math.ceil(patientsTotalCount / PATIENTS_PAGE_SIZE));
+    patientsCurrentPage = Math.min(pageCount, Math.max(1, patientsCurrentPage + delta));
+    loadPatients();
 }
 
 function parseImageUrls(raw) {
@@ -325,7 +302,7 @@ async function renderImageGrid(urls, label) {
     return `<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
         ${resolved.map((full, i) => {
             if (!full) return "";
-            return `<div class="patient-image-thumb" onclick="openImageViewer('${full}', '${label} ${i + 1}')" style="background:url('${full}') center/cover no-repeat;width:80px;height:80px;border-radius:10px;cursor:pointer;border:1px solid var(--border-color);"></div>`;
+            return `<button type="button" class="patient-image-thumb" data-image-url="${utils.escHtml(full)}" data-image-label="${utils.escHtml(`${label} ${i + 1}`)}" aria-label="${utils.escHtml(`${label} ${i + 1}`)}" style="width:80px;height:80px;border-radius:10px;cursor:pointer;border:1px solid var(--border-color);"></button>`;
         }).join("")}
     </div>`;
 }
@@ -333,6 +310,7 @@ async function renderImageGrid(urls, label) {
 async function openPatientModal(patientId) {
     const p = patientsList.find(x => x.id === patientId);
     if (!p) return;
+    await loadPatientPrescriptions(patientId);
 
     const doctor = p.doctors
         ? (i18n.currentLang === "en" ? (p.doctors.name_en || p.doctors.name_ar) : p.doctors.name_ar)
@@ -357,15 +335,15 @@ async function openPatientModal(patientId) {
     const visitsCount = p.phone ? patientsList.filter(x => x.phone === p.phone).length : (p.visits_count || 1);
     document.getElementById("patientModalBody").innerHTML = `
         <div class="detail-grid" style="margin-bottom:1rem;">
-            <div class="detail-item"><p><strong>${i18n.t("phoneLabel")}</strong><br>${p.phone || "-"}</p></div>
+            <div class="detail-item"><p><strong>${i18n.t("phoneLabel")}</strong><br>${utils.escHtml(p.phone || "-")}</p></div>
             <div class="detail-item"><p><strong>${i18n.t("ageLabel")}</strong><br>${p.age ? p.age + " " + i18n.t("yearsUnit") : "-"}</p></div>
             <div class="detail-item"><p><strong>${i18n.t("weightLabel")}</strong><br>${p.weight ? p.weight + " " + i18n.t("kgUnit") : "-"}</p></div>
             <div class="detail-item"><p><strong>${i18n.t("genderLabelInput")}</strong><br>${genderLabel}</p></div>
             <div class="detail-item"><p><strong>${i18n.t("visitTypeLabel")}</strong><br>${visitLabel}</p></div>
-            <div class="detail-item"><p><strong>${i18n.t("doctorLabel")}</strong><br>${doctor}</p></div>
+            <div class="detail-item"><p><strong>${i18n.t("doctorLabel")}</strong><br>${utils.escHtml(doctor)}</p></div>
             <div class="detail-item"><p><strong>${i18n.t("visitsCountLabel")}</strong><br>${visitsCount}</p></div>
             <div class="detail-item"><p><strong>${i18n.t("followupLabel")}</strong><br>${p.followup_days ? p.followup_days + " " + i18n.t("daysUnit") : i18n.t("noFollowupLabel")}</p></div>
-            <div class="detail-item" style="grid-column:1/-1;"><p><strong>${i18n.t("complaintLabel")}</strong><br>${p.complaint_details || "-"}</p></div>
+            <div class="detail-item" style="grid-column:1/-1;"><p><strong>${i18n.t("complaintLabel")}</strong><br>${utils.escHtml(p.complaint_details || "-")}</p></div>
             <div class="detail-item" style="grid-column:1/-1;"><p><strong>${i18n.t("registeredLabel")}</strong><br>${created}</p></div>
         </div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap;">
@@ -379,6 +357,18 @@ async function openPatientModal(patientId) {
             </div>
         </div>
     `;
+    document.querySelectorAll("#patientModalBody .patient-image-thumb").forEach(button => {
+        const imageUrl = button.dataset.imageUrl;
+        if (imageUrl && /^https:\/\//i.test(imageUrl)) {
+            button.style.backgroundImage = `url("${imageUrl.replace(/["\\]/g, "\\$&")}")`;
+            button.style.backgroundPosition = "center";
+            button.style.backgroundSize = "cover";
+            button.style.backgroundRepeat = "no-repeat";
+            button.addEventListener("click", () => openImageViewer(imageUrl, button.dataset.imageLabel));
+        } else {
+            button.disabled = true;
+        }
+    });
     document.getElementById("patientModal").classList.add("active");
 }
 
@@ -462,7 +452,19 @@ function closeImageViewer() {
 // ------------------------------------------------------------------
 // View all prescriptions for a patient
 // ------------------------------------------------------------------
-function viewPatientRx(patientId) {
+async function loadPatientPrescriptions(patientId) {
+    let query = db.getClient().from("clinic_prescriptions")
+        .select("id, patient_id, patient_name, patient_phone, patient_age, patient_weight, doctor_name, doctor_signature_image, medicines, tests, notes, diagnosis, created_at")
+        .eq("patient_id", patientId).order("created_at", { ascending: false });
+    if (isDoctor && currentUserDoctorId) query = query.eq("doctor_id", currentUserDoctorId);
+    const { data, error } = await query;
+    if (error) throw error;
+    allRxMap[patientId] = data || [];
+    allRxMap[patientId].forEach(rx => { allRxFlat[rx.id] = rx; });
+}
+
+async function viewPatientRx(patientId) {
+    await loadPatientPrescriptions(patientId);
     const rxList = allRxMap[patientId];
     if (!rxList || rxList.length === 0) return;
 
@@ -597,7 +599,7 @@ function previewPrescriptionPdf(rxId) {
         if (!fullSigUrl.startsWith("http") && !fullSigUrl.startsWith("data:")) {
             fullSigUrl = CONFIG.SUPABASE_URL + "/storage/v1/object/public/" + CONFIG.STORAGE_BUCKET + "/" + fullSigUrl;
         }
-        sigEl.innerHTML = `<img src="${fullSigUrl}" alt="signature">`;
+        sigEl.innerHTML = `<img src="${utils.escHtml(fullSigUrl)}" alt="signature">`;
     } else {
         sigEl.innerHTML = "";
     }
