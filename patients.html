@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/print.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -99,6 +100,16 @@
                             <i class="fa-solid fa-user-injured" style="color: var(--primary);"></i>
                             <span data-i18n="navPatients">بيانات المرضى</span>
                             <span class="badge badge-active" id="patientsCountBadge" style="margin-inline-start:0.5rem;">0</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                            <label for="patientExportFrom" class="form-label" style="margin:0;" data-i18n="fromDate">من تاريخ</label>
+                            <input type="date" id="patientExportFrom" class="form-control" style="width:auto;min-width:145px;">
+                            <label for="patientExportTo" class="form-label" style="margin:0;" data-i18n="toDate">إلى تاريخ</label>
+                            <input type="date" id="patientExportTo" class="form-control" style="width:auto;min-width:145px;">
+                            <button type="button" id="exportPatientsExcelBtn" class="btn btn-primary btn-sm" onclick="exportPatientsToExcel()">
+                                <i class="fa-solid fa-file-excel"></i>
+                                <span data-i18n="exportPatientsExcel">تنزيل بيانات المرضى Excel</span>
+                            </button>
                         </div>
                     </div>
                     <div class="card-body">

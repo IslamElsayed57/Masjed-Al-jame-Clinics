@@ -59,6 +59,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const doctorFilter = document.getElementById("patientDoctorFilter");
     if (doctorFilter) doctorFilter.addEventListener("change", reloadFromFirstPage);
 
+    const exportFrom = document.getElementById("patientExportFrom");
+    const exportTo = document.getElementById("patientExportTo");
+    if (exportFrom && exportTo) {
+        const today = new Date().toISOString().slice(0, 10);
+        exportFrom.value = `${today.slice(0, 4)}-01-01`;
+        exportTo.value = today;
+    }
+
     window.onLanguageChange = () => loadPatients();
 });
 
@@ -80,6 +88,104 @@ async function loadDoctorsForFilter() {
         }
     } catch (e) {
         console.error("Load doctors for patient filter error:", e);
+    }
+}
+
+async function exportPatientsToExcel() {
+    if (typeof XLSX === "undefined") {
+        utils.showToast(i18n.currentLang === "en" ? "Excel export is unavailable. Reload the page and try again." : "ميزة تصدير Excel غير متاحة الآن. أعد تحميل الصفحة وحاول مرة أخرى.", "error");
+        return;
+    }
+
+    const fromDate = document.getElementById("patientExportFrom")?.value;
+    const toDate = document.getElementById("patientExportTo")?.value;
+    if (fromDate && toDate && fromDate > toDate) {
+        utils.showToast(i18n.currentLang === "en" ? "Start date must be before end date." : "تاريخ البداية يجب أن يسبق تاريخ النهاية.", "error");
+        return;
+    }
+
+    const button = document.getElementById("exportPatientsExcelBtn");
+    if (button) button.disabled = true;
+    try {
+        let query = db.getClient().from("clinic_patients")
+            .select("id, full_name, gender, age, weight, phone, is_new_visit, visit_date, complaint_details, doctor_id, status, visits_count, followup_days, created_at, doctors(name_ar, name_en)")
+            .order("visit_date", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false });
+
+        if (fromDate) query = query.gte("visit_date", fromDate);
+        if (toDate) query = query.lte("visit_date", toDate);
+
+        const doctorValue = document.getElementById("patientDoctorFilter")?.value;
+        const doctorId = isDoctor ? currentUserDoctorId : (doctorValue && doctorValue !== "all" ? doctorValue : null);
+        if (doctorId) query = query.eq("doctor_id", doctorId);
+
+        const exportedPatients = [];
+        const batchSize = 500;
+        for (let offset = 0; ; offset += batchSize) {
+            const { data, error } = await query.range(offset, offset + batchSize - 1);
+            if (error) throw error;
+            const batch = data || [];
+            exportedPatients.push(...batch);
+            if (batch.length < batchSize) break;
+        }
+
+        const patientIds = exportedPatients.map(patient => patient.id);
+        const prescriptionRows = [];
+        for (let offset = 0; offset < patientIds.length; offset += 200) {
+            const ids = patientIds.slice(offset, offset + 200);
+            let rxQuery = db.getClient().from("clinic_prescriptions")
+                .select("patient_id, patient_name, doctor_name, diagnosis, medicines, tests, notes, created_at")
+                .in("patient_id", ids)
+                .order("created_at", { ascending: true });
+            if (isDoctor && currentUserDoctorId) rxQuery = rxQuery.eq("doctor_id", currentUserDoctorId);
+            const { data, error } = await rxQuery;
+            if (error) throw error;
+            prescriptionRows.push(...(data || []));
+        }
+
+        const prescriptionsByPatient = new Map();
+        prescriptionRows.forEach(rx => {
+            const list = prescriptionsByPatient.get(rx.patient_id) || [];
+            list.push(rx);
+            prescriptionsByPatient.set(rx.patient_id, list);
+        });
+
+        const headers = i18n.currentLang === "en"
+            ? ["Patient name", "Gender", "Age", "Weight (kg)", "Phone", "Doctor", "Visit type", "Visit date", "Complaint", "Follow-up days", "Visit count", "Status", "Prescription date", "Prescription doctor", "Diagnosis", "Medicines", "Tests", "Prescription notes"]
+            : ["اسم المريض", "النوع", "العمر", "الوزن (كجم)", "الهاتف", "الطبيب", "نوع الزيارة", "تاريخ الزيارة", "الشكوى", "أيام إعادة الكشف", "عدد الزيارات", "الحالة", "تاريخ الروشتة", "طبيب الروشتة", "التشخيص", "الأدوية", "التحاليل", "ملاحظات الروشتة"];
+        const rows = [];
+        exportedPatients.forEach(patient => {
+            const doctor = patient.doctors
+                ? (i18n.currentLang === "en" ? (patient.doctors.name_en || patient.doctors.name_ar) : patient.doctors.name_ar)
+                : "";
+            const prescriptions = prescriptionsByPatient.get(patient.id) || [];
+            const base = [patient.full_name, patient.gender, patient.age, patient.weight, patient.phone, doctor,
+                patient.is_new_visit === false ? (i18n.currentLang === "en" ? "Follow-up" : "إعادة كشف") : (i18n.currentLang === "en" ? "New visit" : "كشف جديد"),
+                patient.visit_date, patient.complaint_details, patient.followup_days, patient.visits_count, patient.status];
+
+            if (!prescriptions.length) {
+                rows.push([...base, "", "", "", "", "", ""]);
+                return;
+            }
+            prescriptions.forEach(rx => {
+                const medicines = Array.isArray(rx.medicines) ? rx.medicines.map(m => [m.name, m.dosage, m.instructions].filter(Boolean).join(" — ")).join(" | ") : "";
+                const tests = Array.isArray(rx.tests) ? rx.tests.map(t => [t.name, t.notes].filter(Boolean).join(" — ")).join(" | ") : "";
+                rows.push([...base, rx.created_at, rx.doctor_name, rx.diagnosis, medicines, tests, rx.notes]);
+            });
+        });
+
+        const workbook = XLSX.utils.book_new();
+        const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        sheet["!cols"] = headers.map((_, index) => ({ wch: index < 12 ? 18 : 28 }));
+        XLSX.utils.book_append_sheet(workbook, sheet, i18n.currentLang === "en" ? "Patients" : "المرضى");
+        const filename = `clinic-patients_${fromDate || "all"}_${toDate || "all"}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        utils.showToast(i18n.currentLang === "en" ? `Exported ${exportedPatients.length} patients.` : `تم تنزيل بيانات ${exportedPatients.length} مريض.`, "success");
+    } catch (error) {
+        console.error("Export patients error:", error);
+        utils.showToast(i18n.currentLang === "en" ? "Could not export patient data. Check your access and try again." : "تعذر تصدير بيانات المرضى. تحقق من صلاحية الوصول وحاول مرة أخرى.", "error");
+    } finally {
+        if (button) button.disabled = false;
     }
 }
 

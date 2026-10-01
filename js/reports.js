@@ -4,6 +4,15 @@
 // ==========================================================================
 
 let reportDoctors = [];
+
+function printClinicReport() {
+    document.body.classList.add("report-printing");
+    window.print();
+}
+
+window.addEventListener("afterprint", () => {
+    document.body.classList.remove("report-printing");
+});
 let currentUserDoctorId = null;
 let isDoctor = false;
 
