@@ -1,0 +1,35 @@
+{
+    "name": "عيادات مسجد الجامع - لوحة تحكم العيادات",
+    "short_name": "Clinics Dashboard",
+    "description": "لوحة تحكم عيادات مسجد الجامع: إدارة المواعيد والمرضى والوصفات والأطباء",
+    "id": "/Masjed-Al-jame-Clinics/",
+    "start_url": "/Masjed-Al-jame-Clinics/",
+    "scope": "/Masjed-Al-jame-Clinics/",
+    "display": "standalone",
+    "orientation": "any",
+    "theme_color": "#5A3825",
+    "background_color": "#FFFFFF",
+    "lang": "ar",
+    "dir": "rtl",
+    "categories": ["business", "medical", "productivity"],
+    "icons": [
+        {
+            "src": "Icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "Icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "Icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
